@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: demo-rag
+  ai:
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        index-name: custom-index
+        dimensions: 1536
+        similarity: cosine
+    openai:
+      api-key:
+      embedding:
+        options:
+          model: text-embedding-3-small
+          dimensions: 1536
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: NdzQouth
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com:
+      hseabra: DEBUG
+    org:
+      springframework:
+        ai:
+          transformer:
+            splitter: INFO
+
