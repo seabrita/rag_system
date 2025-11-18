@@ -46,17 +46,15 @@ This will:
 
 ### 2. Configure Application
 
-Update `src/main/resources/application.yaml` with your credentials:
+Create a `.env` file in the project root by copying the example:
 
-```yaml
-spring:
-  ai:
-    openai:
-      api-key: your-openai-api-key
-  elasticsearch:
-    uris: http://localhost:9200
-    username: elastic
-    password: your-elasticsearch-password
+Edit the `.env` file with your actual credentials:
+```
+# OpenAI Configuration
+OPENAI_API_KEY=your-actual-openai-api-key
+
+  # Elasticsearch Configuration
+ELASTICSEARCH_PASSWORD=your-actual-elasticsearch-password
 ```
 
 **Security Note**: Never commit sensitive credentials to version control. Consider using environment variables or a secure configuration management system for production deployments.
@@ -71,12 +69,6 @@ spring:
 
 ```bash
 ./gradlew bootRun
-```
-
-Or run the compiled JAR:
-
-```bash
-java -jar build/libs/demo-rag-0.0.1-SNAPSHOT.jar
 ```
 
 The application will start on the default port (typically 8080).
@@ -110,31 +102,6 @@ The application will start on the default port (typically 8080).
 
 (Document your API endpoints here based on your controllers)
 
-## Project Structure
-
-```
-src/
-├── main/
-│   ├── java/com/hseabra/demo_rag/
-│   │   ├── AiConfig.java                    # Spring AI configuration
-│   │   ├── ChunkingService.java             # Document chunking logic
-│   │   ├── CustomizedTokenTextSplitter.java # Custom text splitting
-│   │   ├── DemoRagApplication.java          # Main application class
-│   │   ├── IngestionService.java            # Document ingestion
-│   │   ├── ParentChildRetriever.java        # Retrieval strategy
-│   │   ├── ParentDocumentStore.java         # Parent doc storage
-│   │   ├── PdfService.java                  # PDF processing
-│   │   ├── RagInferenceService.java         # Question answering
-│   │   ├── TopicClassifier.java             # Document classification
-│   │   └── Test.java                        # Test utilities
-│   └── resources/
-│       ├── application.yaml                  # Configuration
-│       └── *.pdf                             # Sample PDF documents
-└── test/
-    └── java/com/hseabra/demo_rag/
-        └── DemoRagApplicationTests.java      # Test cases
-```
-
 ## Configuration Options
 
 Key configuration properties in `application.yaml`:
@@ -147,57 +114,3 @@ Key configuration properties in `application.yaml`:
 | `spring.ai.openai.embedding.options.model` | OpenAI embedding model | `text-embedding-3-small` |
 | `spring.ai.openai.chat.options.model` | OpenAI chat model | `gpt-4o-mini` |
 | `spring.ai.openai.chat.options.temperature` | Response creativity | `0.7` |
-
-## Development
-
-### Running Tests
-
-```bash
-./gradlew test
-```
-
-### Building for Production
-
-```bash
-./gradlew clean build -x test
-```
-
-## Troubleshooting
-
-### Elasticsearch Connection Issues
-
-1. Verify Elasticsearch is running:
-   ```bash
-   curl -u elastic:your-password http://localhost:9200
-   ```
-
-2. Check Docker containers:
-   ```bash
-   docker ps
-   ```
-
-3. View Elasticsearch logs:
-   ```bash
-   docker logs <container-id>
-   ```
-
-### OpenAI API Issues
-
-- Verify your API key is valid and has sufficient credits
-- Check rate limits if experiencing throttling
-- Ensure the specified models are available in your OpenAI account
-
-## License
-
-(Add your license information here)
-
-## Contributors
-
-(Add contributor information here)
-
-## Acknowledgments
-
-- Spring AI team for the excellent AI integration framework
-- Elasticsearch for vector storage capabilities
-- OpenAI for embedding and chat models
-
