@@ -22,13 +22,9 @@ public class RagInferenceService {
     public String inference(String query) {
 
         long start = System.currentTimeMillis();
-        SearchRequest request = SearchRequest.builder().query(query).topK(3).build();
+        SearchRequest request = SearchRequest.builder().query(query).topK(5).build();
         List<Document> documents = vectorStore.similaritySearch(request);
-        log.info("Inference took {}ms return {} chunks",System.currentTimeMillis()-start, documents.size());
-        for (Document document : documents) {
-            log.info("\tscore {}", document.getScore());
-            log.info("\tchunk {}/{}", document.getMetadata().get("chunk_index"), document.getMetadata().get("total_chunks"));
-        }
+        log.info("Inference took {}ms return {} docs", System.currentTimeMillis() - start, documents.size());
 
         String context = documents.stream()
                 .map(Document::getText)
@@ -36,12 +32,13 @@ public class RagInferenceService {
 
         // 5️⃣ Build final prompt
         String prompt = """
-                You are a helpful assistant answering questions about cryptocurrency whitepapers.
+                You are a helpful assistant that answers user questions using only the provided documents.
                 
-                Use the conversation history and the retrieved documents to answer.
-                
-                If the answer is not found in the documents, say:
-                "I don't have enough information to answer that question."
+                Instructions:
+                - Use only the information from the retrieved documents.
+                - If the answer cannot be found in the documents, respond with:
+                  "I don't have enough information to answer that question."
+                - Be lyric and erudite.
                 
                 Retrieved documents:
                 %s

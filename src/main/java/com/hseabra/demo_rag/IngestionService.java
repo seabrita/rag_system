@@ -7,22 +7,29 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Service
 @AllArgsConstructor
 public class IngestionService {
-    private static final int BATCH_SIZE = 100;
+    private static final int BATCH_SIZE = 10;
+    private static final int PARALLELISM = 100;
     private final ParentDocumentStore parentStore;
     private final PdfService pdfs;
     private final TopicClassifier topics;
     private final ChunkingService chunkingService;
     private final VectorStore vectorStore;
+    private final ForkJoinPool forkJoinPool = new ForkJoinPool(PARALLELISM);
 
-    public IngestResult ingest(String path) throws IOException {
+    public void ingest(String path) throws IOException {
         long start = System.currentTimeMillis();
         log.info("Starting ingestion process for path: {}", path);
 
@@ -42,66 +49,39 @@ public class IngestionService {
         Map<String, Object> metadata = Map.of("topic", topic);
         List<Document> chunks = chunkingService.createChunks(new Document(fullContent, metadata));
         log.info("Created {} chunks", chunks.size());
+        AtomicLong timeSum = new AtomicLong(0);
+        AtomicInteger count = new AtomicInteger(0);
 
 
-        // Add pages to chroma in batches of 300
+        // Parallelize batch insertion to vector store
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
         for (int i = 0; i < chunks.size(); i += BATCH_SIZE) {
-            int end = Math.min(i + BATCH_SIZE, chunks.size());
-            List<Document> batch = chunks.subList(i, end);
-            vectorStore.add(batch);
-            log.debug("Added batch {}-{} to vector store", i, end);
+            final int batchStart = i;
+            final int batchEnd = Math.min(i + BATCH_SIZE, chunks.size());
+            final List<Document> batch = new ArrayList<>(chunks.subList(batchStart, batchEnd));
+
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                try {
+                    long l = System.currentTimeMillis();
+                    vectorStore.add(batch);
+                    timeSum.updateAndGet(v -> v + (System.currentTimeMillis() - l));
+                    count.addAndGet(1);
+
+                    log.debug("Added batch {}-{} to vector store", batchStart, batchEnd);
+                } catch (Exception e) {
+                    log.error("Error adding batch {}-{} to vector store", batchStart, batchEnd, e);
+                    throw new RuntimeException("Failed to add batch to vector store", e);
+                }
+            }, forkJoinPool);
+
+            futures.add(future);
         }
+
+        // Wait for all batches to complete
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        log.info("Average time per batch insertion: {}ms", timeSum.get() / Math.max(1, count.get()));
 
         log.info("Ingestion completed in {}s successfully. Topic: {}, Total chunks: {}", (System.currentTimeMillis() - start) / 1000, topic, chunks.size());
-        return new IngestResult(topic, chunks.size());
-    }
-
-    public IngestResult ingestParent(String path) throws IOException {
-        log.info("Starting ingestion process for path: {}", path);
-
-        List<Document> pages = pdfs.loadPdf(path);
-        log.info("Loaded {} pages from PDF", pages.size());
-
-        String topic = topics.detectTopic(pages);
-        log.info("Detected topic: {}", topic);
-
-        int totalChildren = 0;
-
-        for (Document parentPage : pages) {
-
-            // 1️⃣ Generate parent document ID
-            String parentId = UUID.randomUUID().toString();
-            log.debug("Generated parent document ID: {}", parentId);
-
-            // 2️⃣ Add metadata
-            parentPage.getMetadata().put("parent_id", parentId);
-            parentPage.getMetadata().put("topic", topic);
-            log.debug("Added metadata to parent document: parent_id={}, topic={}", parentId, topic);
-
-            // 3️⃣ Store full parent document
-            parentStore.save(parentId, parentPage);
-            log.debug("Stored parent document with ID: {}", parentId);
-
-            // 4️⃣ Chunk to children
-            List<Document> childChunks = chunkingService.createChunks(parentPage);
-            log.debug("Created {} child chunks for parent ID: {}", childChunks.size(), parentId);
-
-            for (Document child : childChunks) {
-                child.getMetadata().put("parent_id", parentId);
-                child.getMetadata().put("topic", topic);
-            }
-
-            // 5️⃣ Store children in vector DB
-            vectorStore.add(childChunks);
-            log.debug("Added {} child chunks to vector store for parent ID: {}", childChunks.size(), parentId);
-
-            totalChildren += childChunks.size();
-        }
-
-        log.info("Ingestion completed successfully. Topic: {}, Total chunks: {}", topic, totalChildren);
-        return new IngestResult(topic, totalChildren);
-    }
-
-    public record IngestResult(String topic, int chunks) {
     }
 }

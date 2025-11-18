@@ -33,8 +33,11 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-starter-vector-store-elasticsearch")
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	//implementation 'org.springframework.ai:spring-ai-starter-vector-store-chroma'
+	implementation 'org.springframework.ai:spring-ai-retry'
     implementation 'org.springframework.ai:spring-ai-tika-document-reader'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

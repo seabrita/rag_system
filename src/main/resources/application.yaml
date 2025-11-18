@@ -18,6 +18,12 @@ spring:
         options:
           model: gpt-4o-mini
           temperature: 0.7
+    retry:
+      max-attempts: 10
+      backoff:
+        max-interval: 30000
+        initial-interval: 2000ms
+        multiplier: 5
   elasticsearch:
     uris: http://localhost:9200
     username: elastic
@@ -25,6 +31,15 @@ spring:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /api-docs
+    enabled: true
+  show-actuator: false
+
 
 logging:
   level:
