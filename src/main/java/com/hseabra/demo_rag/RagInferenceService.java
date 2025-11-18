@@ -21,9 +21,10 @@ public class RagInferenceService {
 
     public String inference(String query) {
 
+        long start = System.currentTimeMillis();
         SearchRequest request = SearchRequest.builder().query(query).topK(3).build();
         List<Document> documents = vectorStore.similaritySearch(request);
-        log.info("Inference return {} chunks", documents.size());
+        log.info("Inference took {}ms return {} chunks",System.currentTimeMillis()-start, documents.size());
         for (Document document : documents) {
             log.info("\tscore {}", document.getScore());
             log.info("\tchunk {}/{}", document.getMetadata().get("chunk_index"), document.getMetadata().get("total_chunks"));

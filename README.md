@@ -46,7 +46,7 @@ This will:
 
 ### 2. Configure Application
 
-Create a `.env` file in the project root by copying the example:
+Create a `.env` file in the project root by copying the example `.env.example`:
 
 Edit the `.env` file with your actual credentials:
 ```
