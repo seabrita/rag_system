@@ -56,7 +56,7 @@ export ELASTICSEARCH_PASSWORD=your-elasticsearch-password
 Alternatively, you can copy `.env.example` to `.env` and update the values:
 
 ```bash
-cp .env .env
+cp .env.example .env
 # Edit .env with your actual credentials
 ```
 
