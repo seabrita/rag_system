@@ -5,7 +5,7 @@ spring:
     vectorstore:
       elasticsearch:
         initialize-schema: true
-        index-name: custom-index
+        index-name: rag_docs_index
         dimensions: 1536
         similarity: cosine
     openai:
@@ -50,4 +50,6 @@ logging:
         ai:
           transformer:
             splitter: INFO
+      apache:
+        pdfbox: ERROR
 

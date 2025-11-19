@@ -19,9 +19,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 @AllArgsConstructor
 public class IngestionService {
-    private static final int BATCH_SIZE = 10;
-    private static final int PARALLELISM = 100;
-    private final ParentDocumentStore parentStore;
+    private static final int BATCH_SIZE = 50;
+    private static final int PARALLELISM = 10;
     private final PdfService pdfs;
     private final TopicClassifier topics;
     private final ChunkingService chunkingService;
