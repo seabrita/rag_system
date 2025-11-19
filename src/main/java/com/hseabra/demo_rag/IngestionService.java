@@ -14,7 +14,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Service
@@ -46,7 +45,7 @@ public class IngestionService {
             }
         }
 
-        Map<String, Object> metadata = Map.of("topic", topic);
+        Map<String, Object> metadata = Map.of("topic", topic, "path", path);
         List<Document> chunks = chunkingService.createChunks(new Document(fullContent, metadata));
         log.info("Created {} chunks", chunks.size());
         AtomicLong timeSum = new AtomicLong(0);
@@ -67,8 +66,6 @@ public class IngestionService {
                     vectorStore.add(batch);
                     timeSum.updateAndGet(v -> v + (System.currentTimeMillis() - l));
                     count.addAndGet(1);
-
-                    log.debug("Added batch {}-{} to vector store", batchStart, batchEnd);
                 } catch (Exception e) {
                     log.error("Error adding batch {}-{} to vector store", batchStart, batchEnd, e);
                     throw new RuntimeException("Failed to add batch to vector store", e);
@@ -80,8 +77,7 @@ public class IngestionService {
 
         // Wait for all batches to complete
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        log.info("Average time per batch insertion: {}ms", timeSum.get() / Math.max(1, count.get()));
-
-        log.info("Ingestion completed in {}s successfully. Topic: {}, Total chunks: {}", (System.currentTimeMillis() - start) / 1000, topic, chunks.size());
+        log.info("Ingestion completed in {}s successfully. Topic: {}, Total chunks: {}, ES calls: {}, AVG time per call: {}ms",
+                (System.currentTimeMillis() - start) / 1000, topic, chunks.size(), count.get(), timeSum.get() / Math.max(1, count.get()));
     }
 }

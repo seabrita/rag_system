@@ -19,13 +19,17 @@ public class RagInferenceService {
     private final VectorStore vectorStore;
     private final ChatModel chat;
 
-    public String inference(String query) {
-
+    public List<Document> inference(String query) {
+        log.info("Received query: {}", query);
         long start = System.currentTimeMillis();
         SearchRequest request = SearchRequest.builder().query(query).topK(5).build();
         List<Document> documents = vectorStore.similaritySearch(request);
         log.info("Inference took {}ms return {} docs", System.currentTimeMillis() - start, documents.size());
+        return documents;
+    }
 
+    public String query(String query) {
+        List<Document> documents = inference(query);
         String context = documents.stream()
                 .map(Document::getText)
                 .collect(Collectors.joining("\n\n"));

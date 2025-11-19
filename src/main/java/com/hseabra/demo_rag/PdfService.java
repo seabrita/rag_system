@@ -27,13 +27,11 @@ public class PdfService {
      */
     private PDDocument loadPDDocument(String path) throws IOException {
         if (path.startsWith("http://") || path.startsWith("https://")) {
-            log.info("Loading PDF from URL: {}", path);
             URL url = new URL(path);
             try (InputStream inputStream = url.openStream()) {
                 return Loader.loadPDF(inputStream.readAllBytes());
             }
         } else {
-            log.info("Loading PDF from file: {}", path);
             return Loader.loadPDF(new File(path));
         }
     }
