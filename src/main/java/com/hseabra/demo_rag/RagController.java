@@ -9,20 +9,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.List;
 
 @Slf4j
@@ -69,8 +66,6 @@ public class RagController {
     public ResponseEntity<QueryResponse> query(
             @Parameter(description = "The question to ask the RAG system", required = true)
             @Valid @RequestBody QueryRequest request) {
-        log.info("Received query: {}", request.getQuestion());
-
         String answer = ragInferenceService.query(request.getQuestion());
 
         QueryResponse response = new QueryResponse(request.getQuestion(), answer);
@@ -92,36 +87,10 @@ public class RagController {
             @Parameter(description = "The path to the PDF file to ingest (local path or URL)", required = true)
             @Valid @RequestBody IngestionRequest request) {
 
-        try {
-            ingestionService.ingest(request.getFilePath());
+        ingestionService.ingest(request.getFilePath());
 
-            IngestionResponse response = new IngestionResponse(
-                    "Document ingested successfully",
-                    request.getFilePath()
-            );
-            return ResponseEntity.ok(response);
-        } catch (FileNotFoundException e) {
-            log.error("File not found: {}", request.getFilePath(), e);
-            IngestionResponse response = new IngestionResponse(
-                    "File not found: " + request.getFilePath(),
-                    request.getFilePath()
-            );
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        } catch (MalformedURLException e) {
-            log.error("Invalid URL: {}", request.getFilePath(), e);
-            IngestionResponse response = new IngestionResponse(
-                    "Invalid URL: " + request.getFilePath(),
-                    request.getFilePath()
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        } catch (IOException e) {
-            log.error("Error ingesting document: {}", request.getFilePath(), e);
-            IngestionResponse response = new IngestionResponse(
-                    "Error ingesting document: " + e.getMessage(),
-                    request.getFilePath()
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        IngestionResponse response = new IngestionResponse("Document ingested successfully");
+        return ResponseEntity.ok(response);
     }
 
     @Data
@@ -146,12 +115,12 @@ public class RagController {
     @Data
     @Schema(description = "Request body for ingesting a document")
     public static class IngestionRequest {
-        @NotBlank(message = "File path cannot be blank")
+        @NotEmpty(message = "File path cannot be blank")
         @Schema(
                 description = "Path to the PDF file to ingest (supports both local file paths and URLs)",
                 example = "https://bitcoin.org/bitcoin.pdf"
         )
-        private String filePath;
+        private List<String> filePath;
     }
 
     @Data
@@ -160,9 +129,6 @@ public class RagController {
     public static class IngestionResponse {
         @Schema(description = "Status message")
         private String message;
-
-        @Schema(description = "Path of the ingested file")
-        private String filePath;
     }
 
     @Data

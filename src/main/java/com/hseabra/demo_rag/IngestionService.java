@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,18 +27,27 @@ public class IngestionService {
     private final TopicClassifier topics;
     private final ChunkingService chunkingService;
     private final VectorStore vectorStore;
+    private final Executor executor = Executors.newSingleThreadExecutor();
     private final ForkJoinPool forkJoinPool = new ForkJoinPool(PARALLELISM);
 
-    public void ingest(String path) throws IOException {
+    public void ingest(String path) {
         long start = System.currentTimeMillis();
         log.info("Starting ingestion process for path: {}", path);
 
-        List<Document> pages = pdfs.loadPdf(path);
-        log.info("Loaded {} pages from PDF", pages.size());
+        List<Document> pages;
+        try {
+            pages = pdfs.loadPdf(path);
+        } catch (IOException e) {
+            log.error("Failed to load PDF from path: {}", path, e);
+            return;
+        }
+        log.info("PDF with '{}' pages loaded in {}ms", pages.size(), System.currentTimeMillis() - start);
 
+        start = System.currentTimeMillis();
         String topic = topics.detectTopic(pages);
-        log.info("Detected topic: {}", topic);
+        log.info("Topic '{}' detected in {}ms", topic, System.currentTimeMillis() - start);
 
+        start = System.currentTimeMillis();
         String fullContent = "";
         for (Document page : pages) {
             if (page.getText() != null) {
@@ -44,12 +55,12 @@ public class IngestionService {
             }
         }
 
-        Map<String, Object> metadata = Map.of("topic", topic, "path", path);
+        Map<String, Object> metadata = Map.of("topic", topic, "path", path, "knowledge_bases", List.of("general", "pdfs"));
         List<Document> chunks = chunkingService.createChunks(new Document(fullContent, metadata));
-        log.info("Created {} chunks", chunks.size());
+        log.info("'{}' chunks created in {}ms", chunks.size(), System.currentTimeMillis() - start);
+        start = System.currentTimeMillis();
         AtomicLong timeSum = new AtomicLong(0);
         AtomicInteger count = new AtomicInteger(0);
-
 
         // Parallelize batch insertion to vector store
         List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -78,5 +89,9 @@ public class IngestionService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         log.info("Ingestion completed in {}s successfully. Topic: {}, Total chunks: {}, ES calls: {}, AVG time per call: {}ms",
                 (System.currentTimeMillis() - start) / 1000, topic, chunks.size(), count.get(), timeSum.get() / Math.max(1, count.get()));
+    }
+
+    public void ingest(List<String> filesPath) {
+        filesPath.forEach(x -> executor.execute(() -> ingest(x)));
     }
 }

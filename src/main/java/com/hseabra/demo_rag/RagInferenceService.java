@@ -22,8 +22,15 @@ public class RagInferenceService {
     public List<Document> inference(String query) {
         log.info("Received query: {}", query);
         long start = System.currentTimeMillis();
-        SearchRequest request = SearchRequest.builder().query(query).topK(5).build();
+        SearchRequest request = SearchRequest.builder()
+                .query(query)
+                .topK(3)
+                .similarityThreshold(0.6)
+                .build();
         List<Document> documents = vectorStore.similaritySearch(request);
+        for (Document document : documents) {
+            log.info("Retrieved doc with metadata={}", document.getMetadata());
+        }
         log.info("Inference took {}ms return {} docs", System.currentTimeMillis() - start, documents.size());
         return documents;
     }
@@ -36,15 +43,15 @@ public class RagInferenceService {
 
         // 5️⃣ Build final prompt
         String prompt = """
-                You are a helpful assistant that answers user questions using only the provided documents.
+                You are a helpful assistant that answers user questions using ONLY the information in the Documents.
                 
-                Instructions:
-                - Use only the information from the retrieved documents.
-                - If the answer cannot be found in the documents, respond with:
-                  "I don't have enough information to answer that question."
-                - Be lyric and erudite.
+                RULES (read carefully):
+                1. You MUST NOT use any information that is not explicitly present in the Documents.
+                2. If the answer is not supported by the Documents, respond with EXACTLY:
+                   "I don't have enough information to answer that question."
+                3. Do NOT use prior knowledge.
                 
-                Retrieved documents:
+                Documents:
                 %s
                 
                 User question:

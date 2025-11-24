@@ -20,7 +20,6 @@ import java.util.Map;
 @Service
 @AllArgsConstructor
 public class PdfService {
-    private final ChunkingService chunkingService;
 
     /**
      * Helper method to load a PDDocument from either a URL or a local file path
