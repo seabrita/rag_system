@@ -5,29 +5,27 @@ spring:
     vectorstore:
       elasticsearch:
         initialize-schema: true
-        index-name: rag_docs_index
+        index-name: test_hugo_index
         dimensions: 1536
         similarity: cosine
-    openai:
-      api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
-      embedding:
-        options:
-          model: text-embedding-3-small
-          dimensions: 1536
-      chat:
-        options:
-          model: gpt-4o-mini
-          temperature: 0.7
+        cloudId: ${ELASTIC_CLOUD_ID}
+        apiKey: ${ELASTIC_AUTH_HEADER}
     retry:
       max-attempts: 10
       backoff:
         max-interval: 30000
         initial-interval: 2000ms
         multiplier: 5
-  elasticsearch:
-    uris: http://localhost:9200
-    username: elastic
-    password: ${ELASTICSEARCH_PASSWORD:changeme}
+    azure:
+      openai:
+        embedding:
+          options:
+            deployment-name: ai-knowledge
+        chat:
+          options:
+            deployment-name: gpt-4o
+        api-key: ${AZURE_OPENAI_API_KEY:your-azure-openai-api-key-here}
+        endpoint: ${AZURE_OPENAI_ENDPOINT:https://your-resource-name.openai.azure.com/}
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

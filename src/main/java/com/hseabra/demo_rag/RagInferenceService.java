@@ -29,7 +29,7 @@ public class RagInferenceService {
                 .build();
         List<Document> documents = vectorStore.similaritySearch(request);
         for (Document document : documents) {
-            log.info("Retrieved doc with metadata={}", document.getMetadata());
+            log.info("Retrieved doc with metadata={}\n{}", document.getMetadata(), document.getText());
         }
         log.info("Inference took {}ms return {} docs", System.currentTimeMillis() - start, documents.size());
         return documents;

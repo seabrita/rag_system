@@ -1,7 +1,7 @@
 package com.hseabra.demo_rag;
 
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class TopicClassifier {
-    private final OpenAiChatModel model;
+    private final ChatModel model;
 
-    public TopicClassifier(OpenAiChatModel model) {
+    public TopicClassifier(ChatModel model) {
         this.model = model;
     }
 

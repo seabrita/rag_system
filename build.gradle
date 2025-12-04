@@ -31,7 +31,8 @@ dependencies {
     //implementation("io.thomasvitale.langchain4j:langchain4j-chroma-spring-boot-starter:0.13.0")
 
     implementation("org.springframework.ai:spring-ai-starter-vector-store-elasticsearch")
-    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    //implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    implementation 'org.springframework.ai:spring-ai-starter-model-azure-openai'
 	//implementation 'org.springframework.ai:spring-ai-starter-vector-store-chroma'
 	implementation 'org.springframework.ai:spring-ai-retry'
     implementation 'org.springframework.ai:spring-ai-tika-document-reader'
@@ -54,4 +55,19 @@ dependencyManagement {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == 'com.azure') {
+            if (details.requested.name == 'azure-core') {
+                details.useVersion('1.57.0')
+                details.because('Avoid Netty channel deregistration bug in azure-core <= 1.55.x')
+            }
+            if (details.requested.name == 'azure-core-http-netty') {
+                details.useVersion('1.16.2')
+                details.because('Includes NettyUtility closeConnection fix for channel deregistration race')
+            }
+        }
+    }
 }
