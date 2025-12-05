@@ -16,17 +16,24 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RagInferenceService {
 
-    private final VectorStore vectorStore;
+    private static final String DEFAULT_INDEX = "test_hugo_index";
+    private final ElasticConfig.VectorStoreFactory vectorStoreFactory;
     private final ChatModel chat;
 
     public List<Document> inference(String query) {
-        log.info("Received query: {}", query);
+        return inference(query, DEFAULT_INDEX);
+    }
+
+    public List<Document> inference(String query, String indexName) {
+        log.info("Received query: {} for index: {}", query, indexName);
         long start = System.currentTimeMillis();
         SearchRequest request = SearchRequest.builder()
                 .query(query)
                 .topK(3)
                 .similarityThreshold(0.6)
                 .build();
+
+        VectorStore vectorStore = vectorStoreFactory.getVectorStore(indexName);
         List<Document> documents = vectorStore.similaritySearch(request);
         for (Document document : documents) {
             log.info("Retrieved doc with metadata={}\n{}", document.getMetadata(), document.getText());
@@ -36,7 +43,11 @@ public class RagInferenceService {
     }
 
     public String query(String query) {
-        List<Document> documents = inference(query);
+        return query(query, DEFAULT_INDEX);
+    }
+
+    public String query(String query, String indexName) {
+        List<Document> documents = inference(query, indexName);
         String context = documents.stream()
                 .map(Document::getText)
                 .collect(Collectors.joining("\n\n"));

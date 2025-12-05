@@ -69,5 +69,10 @@ configurations.all {
                 details.because('Includes NettyUtility closeConnection fix for channel deregistration race')
             }
         }
+        // Force Netty version to match Azure SDK expectations (except tcnative which uses 2.0.x versioning)
+        if (details.requested.group == 'io.netty' && !details.requested.name.contains('tcnative')) {
+            details.useVersion('4.1.127.Final')
+            details.because('Align with Azure SDK expected Netty version to avoid version mismatch warnings')
+        }
     }
 }

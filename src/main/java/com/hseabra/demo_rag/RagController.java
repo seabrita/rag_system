@@ -35,7 +35,7 @@ public class RagController {
     @PostMapping("/inference")
     @Operation(
             summary = "Query the RAG system",
-            description = "Submit a question to the RAG system and receive an AI-generated answer based on the ingested documents"
+            description = "Submit a question to the RAG system and receive an AI-generated answer based on the ingested documents. Optionally specify an index name."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved documents",
@@ -44,9 +44,14 @@ public class RagController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content)
     })
     public ResponseEntity<InferenceResponse> inference(
-            @Parameter(description = "The question to ask the RAG system", required = true)
+            @Parameter(description = "The question to ask the RAG system and optional index name", required = true)
             @Valid @RequestBody InferenceRequest request) {
-        List<Document> documents = ragInferenceService.inference(request.getQuestion());
+        List<Document> documents;
+        if (request.getIndexName() != null && !request.getIndexName().isBlank()) {
+            documents = ragInferenceService.inference(request.getQuestion(), request.getIndexName());
+        } else {
+            documents = ragInferenceService.inference(request.getQuestion());
+        }
 
         InferenceResponse response = new InferenceResponse(documents);
         return ResponseEntity.ok(response);
@@ -55,7 +60,7 @@ public class RagController {
     @PostMapping("/query")
     @Operation(
             summary = "Query the RAG system",
-            description = "Submit a question to the RAG system and receive an AI-generated answer based on the ingested documents"
+            description = "Submit a question to the RAG system and receive an AI-generated answer based on the ingested documents. Optionally specify an index name."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved answer",
@@ -64,9 +69,14 @@ public class RagController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content)
     })
     public ResponseEntity<QueryResponse> query(
-            @Parameter(description = "The question to ask the RAG system", required = true)
+            @Parameter(description = "The question to ask the RAG system and optional index name", required = true)
             @Valid @RequestBody QueryRequest request) {
-        String answer = ragInferenceService.query(request.getQuestion());
+        String answer;
+        if (request.getIndexName() != null && !request.getIndexName().isBlank()) {
+            answer = ragInferenceService.query(request.getQuestion(), request.getIndexName());
+        } else {
+            answer = ragInferenceService.query(request.getQuestion());
+        }
 
         QueryResponse response = new QueryResponse(request.getQuestion(), answer);
         return ResponseEntity.ok(response);
@@ -75,7 +85,7 @@ public class RagController {
     @PostMapping("/ingest")
     @Operation(
             summary = "Ingest a document",
-            description = "Ingest a PDF document into the RAG system's vector store"
+            description = "Ingest a PDF document into the RAG system's vector store. Optionally specify an index name."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully ingested document",
@@ -84,12 +94,12 @@ public class RagController {
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content)
     })
     public ResponseEntity<IngestionResponse> ingest(
-            @Parameter(description = "The path to the PDF file to ingest (local path or URL)", required = true)
+            @Parameter(description = "The path to the PDF file to ingest (local path or URL) and optional index name", required = true)
             @Valid @RequestBody IngestionRequest request) {
 
-        ingestionService.ingest(request.getFilePath());
+        ingestionService.ingest(request.getFilePath(), request.getIndexName());
 
-        IngestionResponse response = new IngestionResponse("Document ingested successfully");
+        IngestionResponse response = new IngestionResponse("Document(s) ingested successfully");
         return ResponseEntity.ok(response);
     }
 
@@ -99,6 +109,10 @@ public class RagController {
         @NotBlank(message = "Question cannot be blank")
         @Schema(description = "The question to ask", example = "Como Desativar o travamento SAFE?")
         private String question;
+
+        @Schema(description = "Name of the Elasticsearch index to query (optional, defaults to 'test_hugo_index')",
+                example = "custom_index_name")
+        private String indexName;
     }
 
     @Data
@@ -121,6 +135,12 @@ public class RagController {
                 example = "https://bitcoin.org/bitcoin.pdf"
         )
         private List<String> filePath;
+
+        @Schema(
+                description = "Name of the Elasticsearch index to store the documents (optional, defaults to 'test_hugo_index')",
+                example = "custom_index_name"
+        )
+        private String indexName;
     }
 
     @Data
@@ -137,6 +157,10 @@ public class RagController {
         @NotBlank(message = "Question cannot be blank")
         @Schema(description = "The question to ask", example = "Como Desativar o travamento SAFE?")
         private String question;
+
+        @Schema(description = "Name of the Elasticsearch index to query (optional, defaults to 'test_hugo_index')",
+                example = "custom_index_name")
+        private String indexName;
     }
 
     @Data

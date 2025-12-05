@@ -23,14 +23,15 @@ import java.util.concurrent.atomic.AtomicLong;
 public class IngestionService {
     private static final int BATCH_SIZE = 50;
     private static final int PARALLELISM = 10;
+    private static final String DEFAULT_INDEX = "test_hugo_index";
     private final PdfService pdfs;
     private final TopicClassifier topics;
     private final ChunkingService chunkingService;
-    private final VectorStore vectorStore;
-    private final Executor executor = Executors.newSingleThreadExecutor();
+    private final ElasticConfig.VectorStoreFactory vectorStoreFactory;
+    private final Executor executor = Executors.newFixedThreadPool(8);
     private final ForkJoinPool forkJoinPool = new ForkJoinPool(PARALLELISM);
 
-    public void ingest(String path) {
+    public void ingest(String path, String indexName) {
         long start = System.currentTimeMillis();
         log.info("Starting ingestion process for path: {}", path);
 
@@ -55,12 +56,15 @@ public class IngestionService {
             }
         }
 
-        Map<String, Object> metadata = Map.of("topic", topic, "path", path, "knowledge_bases", List.of("general", "pdfs"));
+        Map<String, Object> metadata = Map.of("topic", topic, "path", path);
         List<Document> chunks = chunkingService.createChunks(new Document(fullContent, metadata));
         log.info("'{}' chunks created in {}ms", chunks.size(), System.currentTimeMillis() - start);
         start = System.currentTimeMillis();
         AtomicLong timeSum = new AtomicLong(0);
         AtomicInteger count = new AtomicInteger(0);
+
+        // Get the VectorStore for the specific index
+        VectorStore vectorStore = vectorStoreFactory.getVectorStore(indexName);
 
         // Parallelize batch insertion to vector store
         List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -87,11 +91,11 @@ public class IngestionService {
 
         // Wait for all batches to complete
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        log.info("Ingestion completed in {}s successfully. Topic: {}, Total chunks: {}, ES calls: {}, AVG time per call: {}ms",
-                (System.currentTimeMillis() - start) / 1000, topic, chunks.size(), count.get(), timeSum.get() / Math.max(1, count.get()));
+        log.info("Ingestion completed in {}s successfully. Index: {}, Topic: {}, Total chunks: {}, ES calls: {}, AVG time per call: {}ms",
+                (System.currentTimeMillis() - start) / 1000, indexName, topic, chunks.size(), count.get(), timeSum.get() / Math.max(1, count.get()));
     }
 
-    public void ingest(List<String> filesPath) {
-        filesPath.forEach(x -> executor.execute(() -> ingest(x)));
+    public void ingest(List<String> filesPath, String indexName) {
+        filesPath.forEach(x -> executor.execute(() -> ingest(x, indexName == null ? DEFAULT_INDEX : indexName)));
     }
 }
